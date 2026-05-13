@@ -1,95 +1,69 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client' // 이 줄이 추가되어야 DB와 연결됩니다.
 
-export default function AdminPage() {
-  const [rows, setRows] = useState([])
+export default function OlymptradeFintrixLanding() {
+  const [leaderboard, setLeaderboard] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const saved = localStorage.getItem('fintrixLeaderboard')
+    // DB에서 데이터를 가져오는 함수
+    const fetchLeaderboard = async () => {
+      const supabase = createClient()
+      
+      const { data, error } = await supabase
+        .from('leaderboard')
+        .select('*')
+        .order('rank', { ascending: true })
 
-    if (saved) {
-      setRows(JSON.parse(saved))
-    } else {
-      setRows([
-        { rank: 1, name: 'Trader Alpha', profit: '+482%' },
-        { rank: 2, name: 'Neo Scalper', profit: '+391%' },
-        { rank: 3, name: 'FX Hunter', profit: '+355%' },
-      ])
+      if (error) {
+        console.error('데이터 로딩 실패:', error)
+      } else {
+        // 성공하면 DB 데이터를 리더보드 상태에 저장
+        setLeaderboard(data || [])
+      }
+      setLoading(false)
     }
+
+    fetchLeaderboard()
   }, [])
 
-  const updateRow = (index, key, value) => {
-    const updated = [...rows]
-    updated[index][key] = value
-    setRows(updated)
-  }
-
-  const saveLeaderboard = () => {
-    localStorage.setItem('fintrixLeaderboard', JSON.stringify(rows))
-    alert('리더보드 저장 완료 🚀')
-  }
-
-  const addRow = () => {
-    setRows([
-      ...rows,
-      {
-        rank: rows.length + 1,
-        name: 'NEW TRADER',
-        profit: '+0%'
-      }
-    ])
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-xl">데이터를 불러오는 중...</div>
+      </div>
+    )
   }
 
   return (
-    <div className='min-h-screen bg-black text-white p-8'>
-      <div className='max-w-5xl mx-auto'>
-        <h1 className='text-5xl font-black mb-10'>
-          FINTRIX ADMIN PANEL
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-10">
+      <div className="max-w-5xl w-full text-center">
+        <h1 className="text-6xl font-black mb-6">
+          OLYMPTRADE X FINTRIX
         </h1>
 
-        <div className='space-y-4'>
-          {rows.map((row, index) => (
+        <p className="text-xl text-gray-300 mb-10">
+          미래형 모의투자 트레이딩 대회 - 리더보드
+        </p>
+
+        <div className="grid gap-4 w-full">
+          {leaderboard.map((item) => (
             <div
-              key={index}
-              className='grid grid-cols-3 gap-4 border border-white/10 bg-white/5 rounded-2xl p-5'
+              key={item.id} // DB의 고유 ID를 키값으로 사용
+              className="border border-white/10 rounded-2xl p-6 bg-white/5 flex justify-between items-center"
             >
-              <input
-                value={row.rank}
-                onChange={(e) => updateRow(index, 'rank', e.target.value)}
-                className='bg-black border border-white/10 rounded-xl px-4 py-3'
-              />
-
-              <input
-                value={row.name}
-                onChange={(e) => updateRow(index, 'name', e.target.value)}
-                className='bg-black border border-white/10 rounded-xl px-4 py-3'
-              />
-
-              <input
-                value={row.profit}
-                onChange={(e) => updateRow(index, 'profit', e.target.value)}
-                className='bg-black border border-white/10 rounded-xl px-4 py-3'
-              />
+              <div className="text-2xl font-bold text-gray-500">#{item.rank}</div>
+              <div className="text-xl font-medium">{item.name}</div>
+              <div className="text-2xl font-black text-green-400">{item.profit}</div>
             </div>
           ))}
         </div>
-
-        <div className='flex gap-4 mt-8'>
-          <button
-            onClick={addRow}
-            className='px-8 py-4 rounded-2xl bg-green-500 font-bold'
-          >
-            참가자 추가
-          </button>
-
-          <button
-            onClick={saveLeaderboard}
-            className='px-8 py-4 rounded-2xl bg-cyan-500 font-bold'
-          >
-            저장하기
-          </button>
-        </div>
+        
+        {leaderboard.length === 0 && (
+          <div className="text-gray-500 mt-10">현재 등록된 데이터가 없습니다.</div>
+        )}
       </div>
     </div>
   )
